@@ -16,7 +16,6 @@ type ArenaTickerRow = {
 type ArenaMarketRow = {
   market_id: string
   question: string
-  market_url?: string | null
   side: 'YES' | 'NO'
   p_model_yes: number
   p_market_yes: number
@@ -44,21 +43,6 @@ type ArenaState = {
   message?: string
 }
 
-type ArenaBetRow = {
-  agent_name: string
-  market_id: string
-  question: string
-  side: 'YES' | 'NO'
-  stake: number
-  shares: number
-  entry_price: number
-  opened_at: string
-  settled_at?: string | null
-  exit_price?: number | null
-  pnl?: number | null
-  status?: string
-}
-
 const EMPTY_STATE: ArenaState = {
   generated_at: null,
   starting_balance: 1000,
@@ -73,9 +57,6 @@ export function AgentArenaPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedMarketId, setSelectedMarketId] = useState<string | null>(null)
-  const [selectedAgent, setSelectedAgent] = useState<string | null>(null)
-  const [marketActivity, setMarketActivity] = useState<ArenaBetRow[]>([])
-  const [agentActivity, setAgentActivity] = useState<ArenaBetRow[]>([])
 
   async function refresh() {
     try {
@@ -111,64 +92,18 @@ export function AgentArenaPage() {
     }
   }, [state.markets, selectedMarketId])
 
-  useEffect(() => {
-    if (selectedAgent) {
-      return
+  const marketIds = new Set(state.markets.map((m) => m.market_id))
+  const bets = state.active_bets.filter((b) => marketIds.has(b.market_id))
+  const betsByMarket = new Map<string, typeof bets>()
+  for (const bet of bets) {
+    const existing = betsByMarket.get(bet.market_id)
+    if (existing) {
+      existing.push(bet)
+    } else {
+      betsByMarket.set(bet.market_id, [bet])
     }
-    if (state.leaderboard.length > 0) {
-      setSelectedAgent(state.leaderboard[0].agent)
-    }
-  }, [state.leaderboard, selectedAgent])
-
-  useEffect(() => {
-    if (!selectedMarketId) {
-      setMarketActivity([])
-      return
-    }
-    let isMounted = true
-    const load = async () => {
-      try {
-        const response = await fetch(`/api/arena/market/${selectedMarketId}/bets`)
-        const payload = (await response.json()) as { items?: ArenaBetRow[] }
-        if (isMounted) {
-          setMarketActivity(payload.items ?? [])
-        }
-      } catch {
-        if (isMounted) {
-          setMarketActivity([])
-        }
-      }
-    }
-    void load()
-    return () => {
-      isMounted = false
-    }
-  }, [selectedMarketId])
-
-  useEffect(() => {
-    if (!selectedAgent) {
-      setAgentActivity([])
-      return
-    }
-    let isMounted = true
-    const load = async () => {
-      try {
-        const response = await fetch(`/api/arena/agent/${encodeURIComponent(selectedAgent)}/bets`)
-        const payload = (await response.json()) as { items?: ArenaBetRow[] }
-        if (isMounted) {
-          setAgentActivity(payload.items ?? [])
-        }
-      } catch {
-        if (isMounted) {
-          setAgentActivity([])
-        }
-      }
-    }
-    void load()
-    return () => {
-      isMounted = false
-    }
-  }, [selectedAgent])
+  }
+  const selectedBets = selectedMarketId ? betsByMarket.get(selectedMarketId) ?? [] : []
 
   return (
     <div className="page-stack">
@@ -247,7 +182,6 @@ export function AgentArenaPage() {
             <thead>
               <tr>
                 <th>Market</th>
-                <th>Link</th>
                 <th>Side</th>
                 <th>Fair Price</th>
                 <th>Market Price</th>
@@ -261,29 +195,9 @@ export function AgentArenaPage() {
                 <tr
                   key={market.market_id}
                   className={selectedMarketId === market.market_id ? 'is-selected' : ''}
-                  onClick={() => {
-                    setSelectedMarketId(market.market_id)
-                    if (market.market_url) {
-                      window.open(market.market_url, '_blank', 'noopener,noreferrer')
-                    }
-                  }}
+                  onClick={() => setSelectedMarketId(market.market_id)}
                 >
                   <td>{market.question}</td>
-                  <td>
-                    {market.market_url ? (
-                      <a
-                        href={market.market_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="arena-market-link"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        Polymarket
-                      </a>
-                    ) : (
-                      <span className="muted">N/A</span>
-                    )}
-                  </td>
                   <td>{market.side}</td>
                   <td>{(market.p_model_yes * 100).toFixed(2)}%</td>
                   <td>{(market.p_market_yes * 100).toFixed(2)}%</td>
@@ -315,71 +229,20 @@ export function AgentArenaPage() {
               </tr>
             </thead>
             <tbody>
-              {marketActivity.length === 0 ? (
+              {selectedBets.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="muted">
                     No active bets for this market yet.
                   </td>
                 </tr>
               ) : (
-                marketActivity.map((bet, idx) => (
+                selectedBets.map((bet, idx) => (
                   <tr key={`${bet.agent_name}-${bet.market_id}-${bet.opened_at}-${idx}`}>
                     <td>{bet.agent_name}</td>
                     <td>{bet.side}</td>
                     <td>{bet.stake.toFixed(2)}</td>
                     <td>{bet.shares.toFixed(2)}</td>
                     <td>{(bet.entry_price * 100).toFixed(2)}%</td>
-                    <td>{new Date(bet.opened_at).toLocaleString()}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="panel">
-        <div className="panel__header">
-          <h3>Agent Activity</h3>
-          <select
-            className="opp-sort-select"
-            value={selectedAgent ?? ''}
-            onChange={(event) => setSelectedAgent(event.target.value || null)}
-          >
-            {state.leaderboard.map((row) => (
-              <option key={row.agent} value={row.agent}>
-                {row.agent}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="table-shell">
-          <table>
-            <thead>
-              <tr>
-                <th>Market</th>
-                <th>Side</th>
-                <th>Stake</th>
-                <th>Status</th>
-                <th>PnL</th>
-                <th>Opened</th>
-              </tr>
-            </thead>
-            <tbody>
-              {agentActivity.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="muted">
-                    No bets found for this agent yet.
-                  </td>
-                </tr>
-              ) : (
-                agentActivity.map((bet, idx) => (
-                  <tr key={`${bet.market_id}-${bet.opened_at}-${idx}`}>
-                    <td>{bet.question}</td>
-                    <td>{bet.side}</td>
-                    <td>{Number(bet.stake).toFixed(2)}</td>
-                    <td>{(bet.status ?? 'OPEN').toUpperCase()}</td>
-                    <td>{bet.pnl == null ? '-' : Number(bet.pnl).toFixed(2)}</td>
                     <td>{new Date(bet.opened_at).toLocaleString()}</td>
                   </tr>
                 ))

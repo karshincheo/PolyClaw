@@ -590,30 +590,6 @@ def arena_markets():
         return jsonify({"error": str(exc)}), 503
 
 
-@app.route("/api/arena/market/<market_id>/bets")
-def arena_market_bets(market_id: str):
-    try:
-        limit = int(request.args.get("limit", 200))
-        arena = get_arena_simulation()
-        items = arena.market_bets(market_id, limit=limit)
-        return jsonify({"market_id": market_id, "items": items})
-    except Exception as exc:
-        logger.exception("Arena market bets failed")
-        return jsonify({"error": str(exc)}), 503
-
-
-@app.route("/api/arena/agent/<agent_name>/bets")
-def arena_agent_bets(agent_name: str):
-    try:
-        limit = int(request.args.get("limit", 100))
-        arena = get_arena_simulation()
-        items = arena.agent_bets(agent_name, limit=limit)
-        return jsonify({"agent": agent_name, "items": items})
-    except Exception as exc:
-        logger.exception("Arena agent bets failed")
-        return jsonify({"error": str(exc)}), 503
-
-
 @app.route("/<path:full_path>")
 def frontend_routes(full_path: str):
     """Serve the compiled React frontend for non-API routes."""

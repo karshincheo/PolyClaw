@@ -319,42 +319,6 @@ class AgentArenaSimulation:
             ).fetchall()
         return [dict(row) for row in rows]
 
-    def agent_bets(self, agent_name: str, *, limit: int = 100) -> list[dict[str, Any]]:
-        if self._use_supabase:
-            rows = self._supabase.select(BETS_TABLE, where={"agent_name": agent_name}, order="opened_at.desc", limit=limit)
-            return [dict(row) for row in rows]
-        with self._connect() as conn:
-            rows = conn.execute(
-                """
-                SELECT agent_name, market_id, question, side, stake, shares, entry_price, score, confidence,
-                       expected_value, opened_at, settled_at, exit_price, pnl, status
-                FROM bets
-                WHERE agent_name = ?
-                ORDER BY opened_at DESC
-                LIMIT ?
-                """,
-                (agent_name, limit),
-            ).fetchall()
-        return [dict(row) for row in rows]
-
-    def market_bets(self, market_id: str, *, limit: int = 200) -> list[dict[str, Any]]:
-        if self._use_supabase:
-            rows = self._supabase.select(BETS_TABLE, where={"market_id": market_id}, order="opened_at.desc", limit=limit)
-            return [dict(row) for row in rows]
-        with self._connect() as conn:
-            rows = conn.execute(
-                """
-                SELECT agent_name, market_id, question, side, stake, shares, entry_price, score, confidence,
-                       expected_value, opened_at, settled_at, exit_price, pnl, status
-                FROM bets
-                WHERE market_id = ?
-                ORDER BY opened_at DESC
-                LIMIT ?
-                """,
-                (market_id, limit),
-            ).fetchall()
-        return [dict(row) for row in rows]
-
     def ticker(self, limit: int = 50) -> list[dict[str, Any]]:
         if self._use_supabase:
             return [dict(row) for row in self._supabase.select(TICKER_TABLE, order="id.desc", limit=limit)]
