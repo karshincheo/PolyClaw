@@ -20,6 +20,7 @@ _gamma = None
 _clob = None
 _trader = None
 _dashboard_service = None
+_arena_pipeline = None
 _arena_simulation = None
 _arena_agents = None
 
@@ -67,6 +68,18 @@ def get_dashboard_service():
             trader=get_trader(),
         )
     return _dashboard_service
+
+
+def get_arena_pipeline():
+    global _arena_pipeline
+    if _arena_pipeline is None:
+        from polyclaw.pipeline import SelectionPipeline
+
+        _arena_pipeline = SelectionPipeline(
+            external_signals_path=os.getenv("POLYCLAW_EXTERNAL_SIGNALS_PATH"),
+            require_external_signal=os.getenv("POLYCLAW_REQUIRE_EXTERNAL", "").lower() in {"1", "true", "yes", "on"},
+        )
+    return _arena_pipeline
 
 
 def get_arena_simulation():
@@ -499,6 +512,7 @@ def arena_tick():
         settle_after = int(payload.get("settle_after_seconds") or os.getenv("POLYCLAW_ARENA_SETTLE_AFTER_SECONDS", "3600"))
 
         state = run_single_tick(
+            pipeline=get_arena_pipeline(),
             arena=get_arena_simulation(),
             agents=get_arena_agents(),
             category=category,
