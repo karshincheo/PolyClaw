@@ -1,11 +1,10 @@
 {
   "version": 2,
-  "buildCommand": "cd frontend && npm install && npm run vercel-build -- --outDir ../src/polyclaw/web/static/app",
+  "buildCommand": "cd frontend && npm install && npm run vercel-build",
   "outputDirectory": "frontend/dist",
   "installCommand": "echo 'skip global install'",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.py" },
-    { "source": "/(.*)", "destination": "/api/index.py" }
+    { "source": "/api/(.*)", "destination": "/api/index.py" }
   ],
   "functions": {
     "api/index.py": {
