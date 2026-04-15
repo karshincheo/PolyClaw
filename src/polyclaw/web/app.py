@@ -120,11 +120,6 @@ def _is_admin_authorized() -> bool:
     return False
 
 
-def _is_open_registration_enabled() -> bool:
-    value = os.getenv("POLYCLAW_ARENA_OPEN_REGISTRATION", "").strip().lower()
-    return value in {"1", "true", "yes", "on"}
-
-
 def frontend_entry_dir() -> Path:
     """Return the compiled React app when available, else the fallback static directory."""
     return FRONTEND_BUILD_DIR if (FRONTEND_BUILD_DIR / "index.html").exists() else STATIC_DIR
@@ -527,7 +522,7 @@ def arena_tick():
 @app.route("/api/arena/register", methods=["POST"])
 def arena_register():
     try:
-        if not _is_admin_authorized() and not _is_open_registration_enabled():
+        if not _is_admin_authorized():
             return jsonify({"error": "Unauthorized"}), 401
 
         payload = request.json or {}
@@ -540,101 +535,6 @@ def arena_register():
         return jsonify({"agent_name": agent_name, "api_key": api_key})
     except Exception as exc:
         logger.exception("Arena register failed")
-        return jsonify({"error": str(exc)}), 503
-
-
-@app.route("/api/arena/capabilities")
-def arena_capabilities():
-    try:
-        category = os.getenv("POLYCLAW_ARENA_CATEGORY", "NBA")
-        return jsonify(
-            {
-                "platform": "AgentArena",
-                "registration_open": _is_open_registration_enabled(),
-                "default_category": category,
-                "endpoints": {
-                    "register": {
-                        "method": "POST",
-                        "path": "/api/arena/register",
-                        "body": {"agent_name": "string"},
-                        "auth": "Admin token unless POLYCLAW_ARENA_OPEN_REGISTRATION=true",
-                    },
-                    "markets": {
-                        "method": "GET",
-                        "path": "/api/arena/markets",
-                        "auth": "None",
-                    },
-                    "next_pick": {
-                        "method": "GET",
-                        "path": "/api/arena/next-pick",
-                        "query": {"min_confidence": "float (optional, default=0.55)"},
-                        "auth": "X-Agent-Key or Bearer <agent_key>",
-                    },
-                    "decision": {
-                        "method": "POST",
-                        "path": "/api/arena/decision",
-                        "body": {"market_id": "string", "side": "YES|NO", "stake": "number"},
-                        "auth": "X-Agent-Key or Bearer <agent_key>",
-                    },
-                    "state": {
-                        "method": "GET",
-                        "path": "/api/arena/state",
-                        "auth": "None",
-                    },
-                },
-                "recommended_loop": [
-                    "1) Register agent and store key.",
-                    "2) GET /api/arena/next-pick.",
-                    "3) If a pick exists, POST /api/arena/decision with stake.",
-                    "4) Wait 30-120s and repeat.",
-                ],
-            }
-        )
-    except Exception as exc:
-        logger.exception("Arena capabilities failed")
-        return jsonify({"error": str(exc)}), 503
-
-
-@app.route("/api/arena/next-pick")
-def arena_next_pick():
-    try:
-        raw_key = request.headers.get("X-Agent-Key", "").strip() or _extract_bearer_token()
-        if not raw_key:
-            return jsonify({"error": "Missing API key. Use X-Agent-Key or Bearer token."}), 401
-
-        arena = get_arena_simulation()
-        agent_name = arena.resolve_agent_by_key(raw_key)
-        if not agent_name:
-            return jsonify({"error": "Invalid API key"}), 401
-
-        state = arena.load_state()
-        markets = state.get("markets", [])
-        if not isinstance(markets, list) or not markets:
-            return jsonify({"agent": agent_name, "pick": None, "message": "No markets available yet."})
-
-        min_conf = float(request.args.get("min_confidence", 0.55))
-        eligible = [
-            m for m in markets
-            if float(m.get("confidence", 0.0) or 0.0) >= min_conf
-            and float(m.get("expected_value", 0.0) or 0.0) > 0.0
-            and m.get("market_id")
-            and str(m.get("side", "YES")).upper() in {"YES", "NO"}
-        ]
-
-        if not eligible:
-            return jsonify({"agent": agent_name, "pick": None, "message": "No eligible market for current threshold."})
-
-        best = max(
-            eligible,
-            key=lambda m: (
-                float(m.get("expected_value", 0.0) or 0.0),
-                float(m.get("confidence", 0.0) or 0.0),
-                float(m.get("score", 0.0) or 0.0),
-            ),
-        )
-        return jsonify({"agent": agent_name, "pick": best})
-    except Exception as exc:
-        logger.exception("Arena next-pick failed")
         return jsonify({"error": str(exc)}), 503
 
 
