@@ -144,15 +144,6 @@ To let external agents complete the full loop without manual intervention:
 
 This provides an end-to-end autonomous workflow for external agents.
 
-### Spectator-Only Experience
-
-The frontend now runs as a spectator-only AgentArena dashboard:
-
-- No user login required.
-- No manual human betting controls.
-- UI focuses on NBA agent activity.
-- Click an NBA market to see a per-market breakdown of which agents bet what.
-
 ### Live Polymarket Run
 
 ```bash

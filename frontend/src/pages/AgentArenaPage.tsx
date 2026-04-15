@@ -29,16 +29,7 @@ type ArenaState = {
   starting_balance: number
   leaderboard: ArenaLeaderboardRow[]
   ticker: ArenaTickerRow[]
-  active_bets: Array<{
-    agent_name: string
-    market_id: string
-    question: string
-    side: 'YES' | 'NO'
-    stake: number
-    shares: number
-    entry_price: number
-    opened_at: string
-  }>
+  active_bets: Array<Record<string, unknown>>
   markets: ArenaMarketRow[]
   message?: string
 }
@@ -56,7 +47,6 @@ export function AgentArenaPage() {
   const [state, setState] = useState<ArenaState>(EMPTY_STATE)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [selectedMarketId, setSelectedMarketId] = useState<string | null>(null)
 
   async function refresh() {
     try {
@@ -82,28 +72,6 @@ export function AgentArenaPage() {
     }, 8000)
     return () => window.clearInterval(id)
   }, [])
-
-  useEffect(() => {
-    if (selectedMarketId) {
-      return
-    }
-    if (state.markets.length > 0) {
-      setSelectedMarketId(state.markets[0].market_id)
-    }
-  }, [state.markets, selectedMarketId])
-
-  const marketIds = new Set(state.markets.map((m) => m.market_id))
-  const bets = state.active_bets.filter((b) => marketIds.has(b.market_id))
-  const betsByMarket = new Map<string, typeof bets>()
-  for (const bet of bets) {
-    const existing = betsByMarket.get(bet.market_id)
-    if (existing) {
-      existing.push(bet)
-    } else {
-      betsByMarket.set(bet.market_id, [bet])
-    }
-  }
-  const selectedBets = selectedMarketId ? betsByMarket.get(selectedMarketId) ?? [] : []
 
   return (
     <div className="page-stack">
@@ -178,7 +146,7 @@ export function AgentArenaPage() {
           <h3>NBA Market View (Fair vs Market)</h3>
         </div>
         <div className="table-shell">
-          <table className="clickable-table">
+          <table>
             <thead>
               <tr>
                 <th>Market</th>
@@ -192,11 +160,7 @@ export function AgentArenaPage() {
             </thead>
             <tbody>
               {state.markets.map((market) => (
-                <tr
-                  key={market.market_id}
-                  className={selectedMarketId === market.market_id ? 'is-selected' : ''}
-                  onClick={() => setSelectedMarketId(market.market_id)}
-                >
+                <tr key={market.market_id}>
                   <td>{market.question}</td>
                   <td>{market.side}</td>
                   <td>{(market.p_model_yes * 100).toFixed(2)}%</td>
@@ -206,47 +170,6 @@ export function AgentArenaPage() {
                   <td>{market.expected_value.toFixed(3)}</td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="panel">
-        <div className="panel__header">
-          <h3>Market Bet Breakdown</h3>
-          <span className="muted">{selectedMarketId ? `Market ${selectedMarketId}` : 'Select a market above'}</span>
-        </div>
-        <div className="table-shell">
-          <table>
-            <thead>
-              <tr>
-                <th>Agent</th>
-                <th>Side</th>
-                <th>Stake</th>
-                <th>Shares</th>
-                <th>Entry Price</th>
-                <th>Opened</th>
-              </tr>
-            </thead>
-            <tbody>
-              {selectedBets.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="muted">
-                    No active bets for this market yet.
-                  </td>
-                </tr>
-              ) : (
-                selectedBets.map((bet, idx) => (
-                  <tr key={`${bet.agent_name}-${bet.market_id}-${bet.opened_at}-${idx}`}>
-                    <td>{bet.agent_name}</td>
-                    <td>{bet.side}</td>
-                    <td>{bet.stake.toFixed(2)}</td>
-                    <td>{bet.shares.toFixed(2)}</td>
-                    <td>{(bet.entry_price * 100).toFixed(2)}%</td>
-                    <td>{new Date(bet.opened_at).toLocaleString()}</td>
-                  </tr>
-                ))
-              )}
             </tbody>
           </table>
         </div>

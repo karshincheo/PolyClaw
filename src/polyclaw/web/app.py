@@ -246,7 +246,46 @@ def get_orderbook(token_id):
 
 @app.route("/api/trade", methods=["POST"])
 def place_trade():
-    return jsonify({"error": "Manual trading is disabled. AgentArena is agent-only in spectator mode."}), 403
+    from polyclaw.trading.models import Side, TradeOrder, TradeOrderType
+
+    req = request.json or {}
+    environment = req.get("environment", "paper")
+    if environment != "paper":
+        return (
+            jsonify(
+                {
+                    "error": "Live execution is disabled in Phase 1.",
+                    "paperExecutionAvailable": True,
+                    "liveExecutionAvailable": False,
+                }
+            ),
+            501,
+        )
+
+    order = TradeOrder(
+        token_id=req["token_id"],
+        market_id=req.get("market_id", ""),
+        market_question=req.get("question", ""),
+        outcome=req.get("outcome", ""),
+        side=Side(req["side"]),
+        order_type=TradeOrderType.LIMIT if req.get("price") else TradeOrderType.MARKET,
+        price=req.get("price"),
+        size=req["size"],
+    )
+    result = get_trader().place_order(order)
+    get_dashboard_service().invalidate_paper_state()
+    get_dashboard_service().invalidate_market_state(req.get("market_id"))
+    return jsonify(
+        {
+            "order_id": result.order_id,
+            "status": result.status.value,
+            "filled_price": result.filled_price,
+            "filled_size": result.filled_size,
+            "total_cost": result.total_cost,
+            "message": result.message,
+            "environment": environment,
+        }
+    )
 
 
 @app.route("/api/positions")
@@ -292,7 +331,73 @@ def strategy_opportunities():
 
 @app.route("/api/strategy/opportunities/<market_id>/bet", methods=["POST"])
 def strategy_bet(market_id: str):
-    return jsonify({"error": "Manual strategy bets are disabled. AgentArena is agent-only in spectator mode."}), 403
+    from polyclaw.trading.models import Side, TradeOrder, TradeOrderType
+
+    req = request.json or {}
+    side_str = req.get("side", "YES").upper()
+    size = float(req.get("size", 100))
+
+    # Try to resolve token_id from the dashboard opportunity cache first
+    dashboard = get_dashboard_service()
+    token_id = None
+    question = ""
+
+    try:
+        items = dashboard._load_opportunities()
+    except Exception:
+        items = dashboard.opportunities_cache.value or []
+
+    opp = next((o for o in items if o["id"] == market_id), None)
+    if not opp:
+        detail = dashboard.get_opportunity_detail(market_id)
+        if detail:
+            opp = detail
+
+    if opp:
+        token_ids = opp.get("tokenIds", {})
+        token_id = token_ids.get(side_str)
+        question = opp.get("question", "")
+
+    # If not in feed, fetch the market directly from Gamma API
+    if not token_id:
+        try:
+            import httpx
+            resp = httpx.get(f"https://gamma-api.polymarket.com/markets/{market_id}", timeout=10)
+            if resp.status_code == 200:
+                from polyclaw.models.market import Market as MarketModel
+                market = MarketModel.model_validate(resp.json())
+                question = market.question
+                for idx, outcome in enumerate(market.outcomes):
+                    if outcome.upper() == side_str and idx < len(market.clob_token_ids):
+                        token_id = market.clob_token_ids[idx]
+                        break
+        except Exception as exc:
+            logger.warning("Could not fetch market %s from Gamma: %s", market_id, exc)
+
+    if not token_id:
+        return jsonify({"error": f"No {side_str} token available for market {market_id}"}), 400
+
+    order = TradeOrder(
+        token_id=token_id,
+        market_id=market_id,
+        market_question=question,
+        outcome=side_str,
+        side=Side.BUY,
+        order_type=TradeOrderType.MARKET,
+        size=size,
+    )
+    result = get_trader().place_order(order)
+    dashboard.invalidate_paper_state()
+    return jsonify(
+        {
+            "order_id": result.order_id,
+            "status": result.status.value,
+            "filled_price": result.filled_price,
+            "filled_size": result.filled_size,
+            "total_cost": result.total_cost,
+            "message": result.message,
+        }
+    )
 
 
 @app.route("/api/backtest/strategies")
