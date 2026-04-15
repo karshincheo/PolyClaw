@@ -1451,33 +1451,3 @@ textarea {
 .bt-chart .recharts-wrapper { font-family: var(--mono), monospace; }
 .bt-chart .recharts-cartesian-grid-horizontal line, .bt-chart .recharts-cartesian-grid-vertical line { stroke: rgba(255,255,255,0.06); }
 .bt-chart .recharts-tooltip-cursor { stroke: rgba(255,255,255,0.15); }
-
-/* ── AgentArena page ── */
-.arena-meta {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  color: var(--text-soft);
-  font-size: 0.86rem;
-}
-
-.arena-ticker {
-  display: grid;
-  gap: 0.5rem;
-  max-height: 24rem;
-  overflow-y: auto;
-}
-
-.arena-ticker__row {
-  display: grid;
-  gap: 0.2rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 0.8rem;
-  padding: 0.55rem 0.65rem;
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.arena-ticker__time {
-  color: var(--text-muted);
-  font-size: 0.76rem;
-}

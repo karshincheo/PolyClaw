@@ -10,11 +10,5 @@
     "api/index.py": {
       "runtime": "@vercel/python@4.6.0"
     }
-  },
-  "crons": [
-    {
-      "path": "/api/arena/tick",
-      "schedule": "0 0 * * *"
-    }
-  ]
+  }
 }

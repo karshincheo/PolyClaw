@@ -8,7 +8,6 @@ import { usePrototypeDashboard } from './hooks/usePrototypeDashboard'
 import { OpportunitiesPage } from './pages/OpportunitiesPage'
 import { PositionsPage } from './pages/PositionsPage'
 import { BacktestPage } from './pages/BacktestPage'
-import { AgentArenaPage } from './pages/AgentArenaPage'
 
 function App() {
   const [activeSection, setActiveSection] = useState<NavSection>('opportunities')
@@ -34,7 +33,6 @@ function App() {
             {([
               { id: 'opportunities' as NavSection, label: 'Opportunities', badge: dashboard.scoredOpportunities.length || null },
               { id: 'positions' as NavSection, label: 'Positions', badge: dashboard.positions.length || null },
-              { id: 'arena' as NavSection, label: 'AgentArena', badge: null },
               { id: 'backtest' as NavSection, label: 'Backtest', badge: null },
             ]).map((item) => (
               <button
@@ -70,8 +68,6 @@ function App() {
               paperActionBlockedReason={dashboard.paperActionBlockedReason}
               onPlaceBet={dashboard.placeScoredBet}
             />
-          ) : activeSection === 'arena' ? (
-            <AgentArenaPage />
           ) : activeSection === 'backtest' ? (
             <BacktestPage />
           ) : (

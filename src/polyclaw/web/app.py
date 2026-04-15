@@ -1,6 +1,4 @@
-import json
 import logging
-import os
 from pathlib import Path
 
 from flask import Flask, abort, jsonify, request, send_from_directory
@@ -9,9 +7,6 @@ logger = logging.getLogger(__name__)
 
 STATIC_DIR = Path(__file__).parent / "static"
 FRONTEND_BUILD_DIR = STATIC_DIR / "app"
-ARENA_STATE_PATH = Path(__file__).resolve().parents[3] / "data" / "agent_arena_state.json"
-ARENA_DB_PATH = Path(os.getenv("POLYCLAW_ARENA_DB_PATH", str(Path(__file__).resolve().parents[3] / "data" / "agent_arena.db")))
-ARENA_AGENT_CONFIG = Path(os.getenv("POLYCLAW_ARENA_AGENT_CONFIG", str(Path(__file__).resolve().parents[3] / "data" / "agent_config.json")))
 
 app = Flask(__name__, static_folder=str(STATIC_DIR))
 
@@ -20,9 +15,6 @@ _gamma = None
 _clob = None
 _trader = None
 _dashboard_service = None
-_arena_pipeline = None
-_arena_simulation = None
-_arena_agents = None
 
 
 def get_gamma():
@@ -68,69 +60,6 @@ def get_dashboard_service():
             trader=get_trader(),
         )
     return _dashboard_service
-
-
-def get_arena_pipeline():
-    global _arena_pipeline
-    if _arena_pipeline is None:
-        from polyclaw.pipeline import SelectionPipeline
-
-        _arena_pipeline = SelectionPipeline(
-            external_signals_path=os.getenv("POLYCLAW_EXTERNAL_SIGNALS_PATH"),
-            require_external_signal=os.getenv("POLYCLAW_REQUIRE_EXTERNAL", "").lower() in {"1", "true", "yes", "on"},
-        )
-    return _arena_pipeline
-
-
-def get_arena_simulation():
-    global _arena_simulation
-    if _arena_simulation is None:
-        from polyclaw.simulation import AgentArenaSimulation
-
-        _arena_simulation = AgentArenaSimulation(
-            db_path=ARENA_DB_PATH,
-            state_path=ARENA_STATE_PATH,
-            starting_balance=float(os.getenv("POLYCLAW_ARENA_STARTING_BALANCE", "1000")),
-            supabase_url=os.getenv("POLYCLAW_SUPABASE_URL"),
-            supabase_key=os.getenv("POLYCLAW_SUPABASE_KEY"),
-        )
-    return _arena_simulation
-
-
-def get_arena_agents():
-    global _arena_agents
-    if _arena_agents is None:
-        from polyclaw.agents import load_agents_from_config
-
-        if not ARENA_AGENT_CONFIG.exists():
-            _arena_agents = []
-        else:
-            _arena_agents = load_agents_from_config(ARENA_AGENT_CONFIG)
-            arena = get_arena_simulation()
-            for agent in _arena_agents:
-                arena.ensure_agent(agent.name)
-    return _arena_agents
-
-
-def _extract_bearer_token() -> str:
-    auth = request.headers.get("Authorization", "")
-    if auth.lower().startswith("bearer "):
-        return auth.split(" ", 1)[1].strip()
-    return ""
-
-
-def _is_admin_authorized() -> bool:
-    provided = request.headers.get("X-Arena-Admin-Token", "").strip() or _extract_bearer_token()
-    admin_token = os.getenv("POLYCLAW_ARENA_ADMIN_TOKEN", "").strip()
-    if admin_token and provided == admin_token:
-        return True
-
-    # Vercel cron can send Authorization: Bearer <CRON_SECRET>
-    cron_secret = os.getenv("CRON_SECRET", "").strip()
-    if cron_secret and provided == cron_secret:
-        return True
-
-    return False
 
 
 def frontend_entry_dir() -> Path:
@@ -483,130 +412,6 @@ def run_backtest():
         "trades": [t.model_dump() for t in result.trades],
         "equity_curve": [e.model_dump() for e in curve],
     })
-
-
-@app.route("/api/arena/state")
-def arena_state():
-    try:
-        payload = get_arena_simulation().load_state()
-        if payload.get("generated_at") is None:
-            payload["message"] = "No AgentArena state yet. Trigger /api/arena/tick to populate this feed."
-        return jsonify(payload)
-    except Exception as exc:
-        logger.exception("Failed to read AgentArena state")
-        return jsonify({"error": str(exc)}), 503
-
-
-@app.route("/api/arena/tick", methods=["POST"])
-def arena_tick():
-    try:
-        # Shared-secret protection for cron/manual triggers.
-        if not _is_admin_authorized():
-            return jsonify({"error": "Unauthorized"}), 401
-
-        from polyclaw.arena_engine import run_single_tick
-
-        payload = request.json or {}
-        category = str(payload.get("category") or os.getenv("POLYCLAW_ARENA_CATEGORY", "NBA"))
-        limit = int(payload.get("limit") or os.getenv("POLYCLAW_ARENA_LIMIT", "800"))
-        settle_after = int(payload.get("settle_after_seconds") or os.getenv("POLYCLAW_ARENA_SETTLE_AFTER_SECONDS", "3600"))
-
-        state = run_single_tick(
-            pipeline=get_arena_pipeline(),
-            arena=get_arena_simulation(),
-            agents=get_arena_agents(),
-            category=category,
-            limit=limit,
-            settle_after_seconds=settle_after,
-        )
-        return jsonify(
-            {
-                "ok": True,
-                "category": category,
-                "markets": len(state.get("markets", [])),
-                "active_bets": len(state.get("active_bets", [])),
-                "generated_at": state.get("generated_at"),
-            }
-        )
-    except Exception as exc:
-        logger.exception("Arena tick failed")
-        return jsonify({"error": str(exc)}), 503
-
-
-@app.route("/api/arena/register", methods=["POST"])
-def arena_register():
-    try:
-        if not _is_admin_authorized():
-            return jsonify({"error": "Unauthorized"}), 401
-
-        payload = request.json or {}
-        agent_name = str(payload.get("agent_name", "")).strip()
-        if not agent_name:
-            return jsonify({"error": "agent_name is required"}), 400
-
-        arena = get_arena_simulation()
-        api_key = arena.register_agent_key(agent_name)
-        return jsonify({"agent_name": agent_name, "api_key": api_key})
-    except Exception as exc:
-        logger.exception("Arena register failed")
-        return jsonify({"error": str(exc)}), 503
-
-
-@app.route("/api/arena/decision", methods=["POST"])
-def arena_decision():
-    try:
-        raw_key = request.headers.get("X-Agent-Key", "").strip() or _extract_bearer_token()
-        if not raw_key:
-            return jsonify({"error": "Missing API key. Use X-Agent-Key or Bearer token."}), 401
-
-        arena = get_arena_simulation()
-        agent_name = arena.resolve_agent_by_key(raw_key)
-        if not agent_name:
-            return jsonify({"error": "Invalid API key"}), 401
-
-        payload = request.json or {}
-        market_id = str(payload.get("market_id", "")).strip()
-        side = str(payload.get("side", "YES")).upper()
-        stake = float(payload.get("stake", 0.0))
-        if not market_id:
-            return jsonify({"error": "market_id is required"}), 400
-        if side not in {"YES", "NO"}:
-            return jsonify({"error": "side must be YES or NO"}), 400
-        if stake <= 0:
-            return jsonify({"error": "stake must be > 0"}), 400
-
-        result = arena.submit_external_decision(
-            agent_name=agent_name,
-            market_id=market_id,
-            side=side,
-            stake=stake,
-        )
-        return jsonify({"ok": True, **result})
-    except ValueError as exc:
-        return jsonify({"error": str(exc)}), 400
-    except Exception as exc:
-        logger.exception("Arena decision failed")
-        return jsonify({"error": str(exc)}), 503
-
-
-@app.route("/api/arena/leaderboard")
-def arena_leaderboard():
-    try:
-        arena = get_arena_simulation()
-        return jsonify({"items": arena.leaderboard()})
-    except Exception as exc:
-        logger.exception("Arena leaderboard failed")
-        return jsonify({"error": str(exc)}), 503
-
-
-@app.route("/api/arena/markets")
-def arena_markets():
-    try:
-        state = get_arena_simulation().load_state()
-        return jsonify({"items": state.get("markets", []), "generated_at": state.get("generated_at")})
-    except Exception as exc:
-        logger.exception("Arena markets failed")
-        return jsonify({"error": str(exc)}), 503
 
 
 @app.route("/<path:full_path>")

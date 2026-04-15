@@ -1,4 +1,4 @@
-export type NavSection = 'opportunities' | 'positions' | 'backtest' | 'arena'
+export type NavSection = 'opportunities' | 'positions' | 'backtest'
 export type ServiceStatus = 'healthy' | 'degraded' | 'down'
 export type Environment = 'live' | 'paper'
 export type OpportunityStage = 'new' | 'paper' | 'approved' | 'rejected' | 'executed'

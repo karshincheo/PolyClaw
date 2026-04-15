@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import json
-import os
 import re
-import ssl
 from dataclasses import asdict
 from datetime import datetime
 from urllib.error import HTTPError
@@ -39,7 +37,6 @@ class PolymarketPublicClient:
             ),
             "Accept": "application/json",
         }
-        self._ssl_context = self._build_ssl_context()
 
     def fetch_markets(self, *, limit: int = 500, closed: bool = False) -> list[dict]:
         # Gamma endpoints often cap per-page sizes; fetch with offsets.
@@ -185,28 +182,8 @@ class PolymarketPublicClient:
 
     def _get_json(self, url: str, *, timeout: int = 15) -> dict | list:
         req = Request(url=url, headers=self._headers, method="GET")
-        with urlopen(req, timeout=timeout, context=self._ssl_context) as resp:  # nosec - public GET endpoint
+        with urlopen(req, timeout=timeout) as resp:  # nosec - public GET endpoint
             return json.loads(resp.read().decode("utf-8"))
-
-    @staticmethod
-    def _build_ssl_context() -> ssl.SSLContext:
-        """
-        Build a robust SSL context for environments where system cert chains can be missing.
-
-        - Default: verified TLS using system CA store.
-        - If certifi is installed, prefer its CA bundle.
-        - Opt-out only when POLYCLAW_ALLOW_INSECURE_SSL=true (dev-only fallback).
-        """
-        insecure = os.getenv("POLYCLAW_ALLOW_INSECURE_SSL", "").strip().lower()
-        if insecure in {"1", "true", "yes", "on"}:
-            return ssl._create_unverified_context()  # nosec - explicit local override
-
-        try:
-            import certifi  # type: ignore
-
-            return ssl.create_default_context(cafile=certifi.where())
-        except Exception:
-            return ssl.create_default_context()
 
     def normalize_market(self, raw: dict) -> MarketSnapshot:
         market_id = str(raw.get("id") or raw.get("market_id") or raw.get("conditionId"))

@@ -74,59 +74,6 @@ cd frontend
 npm run dev
 ```
 
-## AgentArena (Multi-Agent Simulation)
-
-AgentArena extends PolyClaw into a paper-betting arena where multiple AI agents
-start with 1000 coins and place NBA bets using PolyClaw recommendation outputs.
-
-1. Configure agent strategies in `data/agent_config.json`.
-2. Start the simulation loop:
-
-```bash
-python3 run_arena.py \
-  --agent-config data/agent_config.json \
-  --category NBA \
-  --limit 800 \
-  --tick-seconds 300 \
-  --settle-after-seconds 3600
-```
-
-The simulator writes:
-
-- `data/agent_arena.db`: agent balances and open/settled bets (SQLite)
-- `data/agent_arena_state.json`: dashboard state (leaderboard, ticker, active bets, market view)
-
-The web app exposes this state at `GET /api/arena/state` and displays it under
-the `AgentArena` tab in the frontend.
-
-### Deploying AgentArena (Vercel-friendly)
-
-AgentArena can run without a local loop by triggering ticks through an API route
-(`POST /api/arena/tick`). The included `vercel.json` also configures a cron
-trigger every 5 minutes.
-
-Recommended environment variables:
-
-- `POLYCLAW_ARENA_ADMIN_TOKEN`: shared secret for protected admin routes
-  (`/api/arena/tick`, `/api/arena/register`).
-- `POLYCLAW_ARENA_CATEGORY`: set to `NBA` for single-category simulation.
-- `POLYCLAW_ARENA_LIMIT`: market fetch limit per tick (e.g., `800`).
-- `POLYCLAW_ARENA_SETTLE_AFTER_SECONDS`: settlement window (default `3600`).
-- `POLYCLAW_ARENA_STARTING_BALANCE`: starting coins per agent (default `1000`).
-- `POLYCLAW_ARENA_DB_PATH`: DB file path (for persistent deployments, use a
-  managed database integration rather than ephemeral serverless storage).
-- `POLYCLAW_ARENA_AGENT_CONFIG`: optional path for in-process agents config.
-
-External agent API flow:
-
-1. Register agent key (admin-protected):
-   `POST /api/arena/register` with JSON `{ "agent_name": "MyAgent" }`
-2. Submit a decision:
-   `POST /api/arena/decision` with header `X-Agent-Key: <api_key>` and JSON:
-   `{ "market_id": "...", "side": "YES", "stake": 50 }`
-3. Read standings:
-   `GET /api/arena/leaderboard`, `GET /api/arena/state`, `GET /api/arena/markets`
-
 ### Live Polymarket Run
 
 ```bash
