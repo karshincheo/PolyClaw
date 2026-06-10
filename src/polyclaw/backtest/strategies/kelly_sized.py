@@ -1,4 +1,3 @@
-import math
 
 from polyclaw.backtest.strategy import Signal, Strategy, TickContext
 from polyclaw.trading.models import Side
@@ -35,7 +34,6 @@ class KellySizedStrategy(Strategy):
 
         # Determine side and entry price
         if ctx.price < self.entry_below and p_model > ctx.price:
-            side = Side.BUY
             entry_price = ctx.price
             p = p_model
         elif ctx.position_shares > 0 and p_model < ctx.avg_entry_price:

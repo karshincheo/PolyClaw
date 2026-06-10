@@ -172,8 +172,8 @@ def get_orderbook(token_id):
                 "spread": ob.spread,
                 "midpoint": ob.midpoint,
                 "updatedAt": ob.timestamp,
-                "bids": [{"price": l.price, "size": l.size} for l in ob.bids[:15]],
-                "asks": [{"price": l.price, "size": l.size} for l in ob.asks[:15]],
+                "bids": [{"price": lvl.price, "size": lvl.size} for lvl in ob.bids[:15]],
+                "asks": [{"price": lvl.price, "size": lvl.size} for lvl in ob.asks[:15]],
             }
         )
     except Exception as e:

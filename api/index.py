@@ -6,4 +6,3 @@ from pathlib import Path
 # Ensure the project src directory is importable.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from polyclaw.web.app import app  # noqa: E402

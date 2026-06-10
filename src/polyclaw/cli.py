@@ -1,6 +1,5 @@
 import argparse
 import logging
-import sys
 
 from polyclaw.ingestion.scheduler import IngestionScheduler
 
@@ -53,7 +52,7 @@ def main():
     history_parser = sub.add_parser("history", help="Show paper trade history")
     history_parser.add_argument("--mode", choices=["paper", "live"], default=None)
 
-    reset_parser = sub.add_parser("paper-reset", help="Reset paper trading to starting balance")
+    sub.add_parser("paper-reset", help="Reset paper trading to starting balance")
 
     args = parser.parse_args()
     setup_logging(args.verbose)
@@ -102,7 +101,7 @@ def main():
             size=args.size,
         )
         result = trader.place_order(order)
-        print(f"\nOrder Result:")
+        print("\nOrder Result:")
         print(f"  ID:     {result.order_id}")
         print(f"  Status: {result.status.value}")
         if result.filled_price:
@@ -130,7 +129,7 @@ def main():
         print(f" Unrealized PnL:    ${portfolio.total_unrealized_pnl:,.2f}")
 
         if portfolio.positions:
-            print(f"\n Positions:")
+            print("\n Positions:")
             print(f" {'Outcome':<12} {'Shares':>10} {'Entry':>8} {'Current':>8} {'PnL':>10}  Market")
             print(f" {'-'*12} {'-'*10} {'-'*8} {'-'*8} {'-'*10}  {'-'*30}")
             for p in portfolio.positions:
@@ -138,7 +137,7 @@ def main():
                 pnl = f"${p.unrealized_pnl:+.2f}" if p.unrealized_pnl is not None else "N/A"
                 print(f" {p.outcome:<12} {p.shares:>10.2f} ${p.avg_entry_price:>7.4f} {curr:>8} {pnl:>10}  {p.market_question[:30]}")
         else:
-            print(f"\n No open positions.")
+            print("\n No open positions.")
         print()
 
     elif args.command == "history":
@@ -156,7 +155,7 @@ def main():
             return
 
         print(f"\n{'='*80}")
-        print(f" TRADE HISTORY (last 20)")
+        print(" TRADE HISTORY (last 20)")
         print(f"{'='*80}")
         for t in trades[:20]:
             from datetime import datetime

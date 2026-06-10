@@ -1,5 +1,4 @@
 import logging
-import time
 import uuid
 
 from py_clob_client.client import ClobClient
@@ -19,7 +18,6 @@ from polyclaw.trading.models import (
     OrderStatus,
     PortfolioSummary,
     Position,
-    Side,
     TradeOrder,
     TradeOrderType,
 )
@@ -151,7 +149,7 @@ class LiveTrader(TraderInterface):
     def cancel_order(self, order_id: str) -> bool:
         self._ensure_creds()
         try:
-            resp = self._client.cancel(order_id)
+            self._client.cancel(order_id)
             logger.info("Cancelled order %s", order_id)
             return True
         except Exception as e:

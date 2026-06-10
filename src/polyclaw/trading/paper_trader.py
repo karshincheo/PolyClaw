@@ -1,4 +1,3 @@
-import json
 import logging
 import sqlite3
 import time
@@ -221,9 +220,9 @@ class PaperTrader(TraderInterface):
             )
 
         if order.side == Side.BUY:
-            levels = sorted(ob.asks, key=lambda l: l.price)
+            levels = sorted(ob.asks, key=lambda lvl: lvl.price)
         else:
-            levels = sorted(ob.bids, key=lambda l: l.price, reverse=True)
+            levels = sorted(ob.bids, key=lambda lvl: lvl.price, reverse=True)
 
         if not levels:
             return OrderResult(
@@ -316,10 +315,10 @@ class PaperTrader(TraderInterface):
 
         if order.side == Side.BUY:
             fillable_levels = [a for a in ob.asks if a.price <= order.price]
-            fillable_levels.sort(key=lambda l: l.price)
+            fillable_levels.sort(key=lambda lvl: lvl.price)
         else:
             fillable_levels = [b for b in ob.bids if b.price >= order.price]
-            fillable_levels.sort(key=lambda l: l.price, reverse=True)
+            fillable_levels.sort(key=lambda lvl: lvl.price, reverse=True)
 
         if not fillable_levels:
             now = int(time.time() * 1000)

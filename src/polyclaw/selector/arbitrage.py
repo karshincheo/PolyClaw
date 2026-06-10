@@ -11,7 +11,6 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from .features import clamp
 
 logger = logging.getLogger(__name__)
 

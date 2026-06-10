@@ -122,8 +122,6 @@ def _compute_trade_stats(trades: list[TradeRecord]) -> dict:
             sell_pnl -= t.fee
             pnls.append(sell_pnl)
 
-    # Also subtract buy fees from overall tracking
-    total_buy_fees = sum(t.fee for t in trades if t.side == "BUY")
 
     if not pnls:
         return {

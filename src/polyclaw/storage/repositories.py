@@ -82,8 +82,8 @@ class OrderBookRepository:
         rows = [
             (
                 ob.token_id, ob.market_id,
-                json.dumps([{"price": l.price, "size": l.size} for l in ob.bids]),
-                json.dumps([{"price": l.price, "size": l.size} for l in ob.asks]),
+                json.dumps([{"price": lvl.price, "size": lvl.size} for lvl in ob.bids]),
+                json.dumps([{"price": lvl.price, "size": lvl.size} for lvl in ob.asks]),
                 ob.best_bid, ob.best_ask, ob.spread, ob.midpoint,
                 ob.neg_risk, ob.timestamp,
             )
@@ -103,8 +103,8 @@ class OrderBookRepository:
         return OrderBook(
             token_id=row["token_id"],
             market_id=row["market_id"],
-            bids=[OrderLevel(**l) for l in json.loads(row["bids"])],
-            asks=[OrderLevel(**l) for l in json.loads(row["asks"])],
+            bids=[OrderLevel(**lvl) for lvl in json.loads(row["bids"])],
+            asks=[OrderLevel(**lvl) for lvl in json.loads(row["asks"])],
             best_bid=row["best_bid"],
             best_ask=row["best_ask"],
             spread=row["spread"],
