@@ -1,37 +1,33 @@
-__pycache__/
-*.py[cod]
-*$py.class
-*.egg-info/
-dist/
-build/
-*.egg
-.eggs/
-*.so
-
-# Virtual environments
-.venv/
-venv/
-env/
 
 # Environment variables
-.env
-
-# SQLite databases
-*.db
-*.sqlite3
-
 # IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
 # OS
-.DS_Store
-Thumbs.db
-
+# SQLite databases
 # Testing
-.pytest_cache/
+# Virtual environments
+*$py.class
+*.db
+*.egg
+*.egg-info/
+*.py[cod]
+*.pyc
+*.so
+*.sqlite3
+*.swo
+*.swp
+.DS_Store
 .coverage
-htmlcov/
+.eggs/
+.env
+.idea/
+.pytest_cache/
+.venv/
 .vercel
+.vscode/
+Thumbs.db
+__pycache__/
+build/
+dist/
+env/
+htmlcov/
+venv/

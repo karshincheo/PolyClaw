@@ -1,7 +1,7 @@
 """
 strategy_service.py — connects the legacy SelectionPipeline to the web API.
 
-Runs run_selector.py as a subprocess (to avoid polyclaw package name conflict
+Runs run_selector.py as a subprocess (keeps the stdlib selector isolated from web deps
 between the root legacy module and the installed src/polyclaw package),
 caches results for 60 seconds, and enriches each pick with OpenAI commentary.
 """

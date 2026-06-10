@@ -2,8 +2,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
+from pathlib import Path
 
-from polyclaw.pipeline import SelectionPipeline
+# Allow zero-install runs: the package lives under src/ (src-layout).
+sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
+
+from polyclaw.selector.pipeline import SelectionPipeline  # noqa: E402
 
 
 def build_parser() -> argparse.ArgumentParser:
