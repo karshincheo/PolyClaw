@@ -1,13 +1,8 @@
 # PolyClaw
 
-Framework for selecting top Polymarket bets across:
-- NBA
-- Soccer
-- Cricket
-- Trump
-- Elections
+**Quant bet-selection engine for Polymarket.** Ingests live markets, engineers microstructure features, blends external signals (odds, polls, forecasts) into uncertainty-aware fair probabilities, and surfaces the highest-EV bets under risk and diversification constraints — with ingestion, trading, and a React dashboard served through FastAPI.
 
-It also includes ingestion, trading, and a web dashboard served through FastAPI.
+Covers five market categories: NBA, soccer, cricket, Trump, and elections.
 
 The current implementation builds a reusable pipeline to:
 1. Normalize Polymarket public-market JSON payloads.
