@@ -12,6 +12,21 @@ The current implementation builds a reusable pipeline to:
 5. Apply risk/diversification constraints.
 6. Return top 5 picks per category.
 
+## How it works
+
+```mermaid
+flowchart LR
+    PM[Polymarket APIs] --> N[Normalizer]
+    N --> F[Feature engineering]
+    EXT[External signals<br/>odds · polls · forecasts] --> C[Consensus probability engine]
+    F --> S[Scoring<br/>edge · EV · confidence]
+    C --> S
+    S --> SEL[Risk-constrained<br/>top-N selector]
+    SEL --> D[FastAPI + React dashboard]
+```
+
+Each selected pick is enriched with LLM-generated trade commentary (OpenAI chat completions) in the dashboard; commentary degrades gracefully when no API key is configured.
+
 ## Structure
 
 - `polyclaw/config.py`: framework config, category list, risk constraints.
