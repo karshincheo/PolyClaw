@@ -1,5 +1,7 @@
 # PolyClaw
 
+[![CI](https://github.com/karshincheo/PolyClaw/actions/workflows/ci.yml/badge.svg)](https://github.com/karshincheo/PolyClaw/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **Quant bet-selection engine for Polymarket.** Ingests live markets, engineers microstructure features, blends external signals (odds, polls, forecasts) into uncertainty-aware fair probabilities, and surfaces the highest-EV bets under risk and diversification constraints — with ingestion, trading, and a React dashboard served through FastAPI.
 
 Covers five market categories: NBA, soccer, cricket, Trump, and elections.
