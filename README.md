@@ -29,16 +29,31 @@ Each selected pick is enriched with LLM-generated trade commentary (OpenAI chat 
 
 ## Structure
 
-- `polyclaw/config.py`: framework config, category list, risk constraints.
-- `polyclaw/models.py`: internal dataclasses.
-- `polyclaw/polymarket_client.py`: public-API assumptions + normalization layer.
-- `polyclaw/features.py`: feature engineering.
-- `polyclaw/external_signals.py`: external signal ingestion + consensus probability engine.
-- `polyclaw/scoring.py`: fair probability + EV + confidence + final scoring.
-- `polyclaw/selection.py`: constrained top-N selector.
-- `polyclaw/pipeline.py`: end-to-end orchestration.
-- `run_selector.py`: CLI entry point.
-- `data/sample_markets.json`: sample payload for local smoke tests.
+Two subsystems share this repo:
+
+**Selector** (`src/polyclaw/selector/` — stdlib-only, zero dependencies):
+
+- `config.py`: framework config, category list, risk constraints.
+- `models.py`: internal dataclasses.
+- `polymarket_client.py`: public-API assumptions + normalization layer.
+- `features.py`: feature engineering.
+- `external_signals.py`: external signal ingestion + consensus probability engine.
+- `scoring.py`: fair probability + EV + confidence + final scoring.
+- `selection.py`: constrained top-N selector.
+- `pipeline.py`: end-to-end orchestration.
+- `run_selector.py` (repo root): CLI entry point — runs with no install.
+
+**Platform** (`src/polyclaw/` — the installed package):
+
+- `clients/`: Gamma + CLOB API clients with normalization.
+- `ingestion/`: scheduled market snapshot collection.
+- `storage/`: persistence layer.
+- `backtest/`: backtest engine + strategy implementations.
+- `trading/`: paper/live execution.
+- `web/`: Flask app serving the React dashboard (`polyclaw web`).
+- `cli.py`: `polyclaw` console commands — `fetch-markets`, `daemon`, `trade`, `portfolio`, `history`, `paper-reset`, `web`.
+
+Configuration reference: every variable is documented in [.env.example](.env.example) (paper vs live mode, API endpoints, risk limits). Roadmap: [docs/POLYCLAW_V2_ROADMAP.md](docs/POLYCLAW_V2_ROADMAP.md) · Dashboard API contract: [frontend/docs/api-contract.md](frontend/docs/api-contract.md)
 
 ## Public API Assumptions
 
@@ -50,6 +65,8 @@ Field names may differ by endpoint/version. The normalizer maps common aliases i
 
 ## Quick Start
 
+Runs on the Python standard library only — no install, no API keys, works offline against the bundled sample data:
+
 ```bash
 python3 run_selector.py --input data/sample_markets.json --output data/selection_output.json --pretty
 ```
@@ -58,24 +75,25 @@ This writes output to `data/selection_output.json` with the selected side, score
 
 ## Dashboard
 
-The React dashboard source lives in `frontend/`. The Python web app serves the compiled output from
-`src/polyclaw/web/static/app`.
+The React dashboard source lives in `frontend/`. Pre-built assets are committed at
+`src/polyclaw/web/static/app`, so Node is only needed if you change the frontend.
 
-Build the frontend:
-
-```bash
-cd frontend
-npm install
-npm run build
-```
-
-Run the web server:
+Install the package (provides the `polyclaw` command) and run the web server:
 
 ```bash
+pip install -e .
 polyclaw web --host 127.0.0.1 --port 8000
 ```
 
-Then open `http://127.0.0.1:8000/`.
+Then open `http://127.0.0.1:8000/` and log in with the demo credentials
+`alex@polyclaw.local` / `demo1234`. The dashboard UI is wired to mock data by
+design (prototype); live picks come from the selector CLI.
+
+Rebuild the frontend only if you change `frontend/`:
+
+```bash
+cd frontend && npm install && npm run build
+```
 
 For frontend-only development:
 
