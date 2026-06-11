@@ -4,7 +4,7 @@
 
 **Quant bet-selection engine for Polymarket.** Ingests live markets, engineers microstructure features, blends external signals (odds, polls, forecasts) into uncertainty-aware fair probabilities, and surfaces the highest-EV bets under risk and diversification constraints — with ingestion, trading, and a React dashboard served through FastAPI.
 
-Covers five market categories: NBA, soccer, cricket, Trump, and elections.
+Covers five market categories: NBA, soccer, cricket, political mentions, and elections.
 
 ![PolyClaw dashboard showing live Polymarket picks with edge, model view, and market probability per market](docs/assets/dashboard.png)
 
@@ -92,8 +92,9 @@ polyclaw web --host 127.0.0.1 --port 8000
 ```
 
 Then open `http://127.0.0.1:8000/` and log in with the demo credentials
-`alex@polyclaw.local` / `demo1234`. The dashboard UI is wired to mock data by
-design (prototype); live picks come from the selector CLI.
+`alex@polyclaw.local` / `demo1234`. The Opportunities tab shows live picks from
+the selector service (it shells out to `run_selector.py --live`); the positions,
+overview, and auth flows are prototype-grade with local seed data.
 
 Rebuild the frontend only if you change `frontend/`:
 

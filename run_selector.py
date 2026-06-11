@@ -72,6 +72,10 @@ def main() -> None:
 
     if args.pretty:
         print(json.dumps(pipeline.to_output_dict(results), indent=2))
+    else:
+        total = sum(len(v) for v in results.values())
+        per_cat = ", ".join(f"{cat}: {len(picks)}" for cat, picks in results.items())
+        print(f"Selected {total} picks ({per_cat}) -> {args.output}")
 
 
 if __name__ == "__main__":
