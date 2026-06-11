@@ -6,6 +6,10 @@
 
 Covers five market categories: NBA, soccer, cricket, Trump, and elections.
 
+![PolyClaw dashboard showing live Polymarket picks with edge, model view, and market probability per market](docs/assets/dashboard.png)
+
+*Dashboard rendering live picks from the selector pipeline (paper trading — no live keys, no positions).*
+
 The current implementation builds a reusable pipeline to:
 1. Normalize Polymarket public-market JSON payloads.
 2. Engineer market microstructure features.
